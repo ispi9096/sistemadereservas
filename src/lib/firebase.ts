@@ -35,10 +35,24 @@ export function subscribeToReservations(callback: (reservations: Reservation[]) 
     if (snapshot.empty) {
       // Seed default sample reservations if database is empty
       const initialReservations = generateSampleReservationsForCurrentWeek();
+      callback(initialReservations);
+
       const batch = writeBatch(db);
       initialReservations.forEach((res) => {
         const docRef = doc(db, RESERVATIONS_COLLECTION, res.id);
-        batch.set(docRef, res);
+        const cleanRes: any = {
+          id: res.id,
+          resourceId: res.resourceId,
+          date: res.date,
+          dayOfWeek: Number(res.dayOfWeek),
+          timeSlotId: Number(res.timeSlotId),
+          subject: res.subject || 'Clase',
+          course: res.course || '',
+          createdAt: res.createdAt || new Date().toISOString(),
+          notes: res.notes || '',
+          isFixed: !!res.isFixed
+        };
+        batch.set(docRef, cleanRes);
       });
       try {
         await batch.commit();
@@ -68,6 +82,7 @@ export function subscribeToReservations(callback: (reservations: Reservation[]) 
     callback(reservationsList);
   }, (error) => {
     console.error('Real-time reservations listener error:', error);
+    callback(generateSampleReservationsForCurrentWeek());
   });
 }
 
@@ -80,11 +95,20 @@ export function subscribeToFixedSchedules(callback: (schedules: FixedSchedule[])
 
   return onSnapshot(colRef, async (snapshot) => {
     if (snapshot.empty) {
-      // Seed default fixed schedules if empty
+      callback(INITIAL_FIXED_SCHEDULES);
       const batch = writeBatch(db);
       INITIAL_FIXED_SCHEDULES.forEach((sched) => {
         const docRef = doc(db, FIXED_SCHEDULES_COLLECTION, sched.id);
-        batch.set(docRef, sched);
+        const cleanSched: any = {
+          id: sched.id,
+          resourceId: sched.resourceId,
+          dayOfWeek: Number(sched.dayOfWeek),
+          timeSlotId: Number(sched.timeSlotId),
+          subject: sched.subject || '',
+          course: sched.course || '',
+          notes: sched.notes || ''
+        };
+        batch.set(docRef, cleanSched);
       });
       try {
         await batch.commit();
@@ -111,6 +135,7 @@ export function subscribeToFixedSchedules(callback: (schedules: FixedSchedule[])
     callback(schedulesList);
   }, (error) => {
     console.error('Real-time fixed schedules listener error:', error);
+    callback(INITIAL_FIXED_SCHEDULES);
   });
 }
 
@@ -121,9 +146,16 @@ export async function addReservationToDb(reservation: Omit<Reservation, 'id'> & 
   const id = reservation.id || `res-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const docRef = doc(db, RESERVATIONS_COLLECTION, id);
   const dataToSave: Reservation = {
-    ...reservation,
     id,
-    createdAt: reservation.createdAt || new Date().toISOString()
+    resourceId: reservation.resourceId,
+    date: reservation.date,
+    dayOfWeek: Number(reservation.dayOfWeek),
+    timeSlotId: Number(reservation.timeSlotId),
+    subject: reservation.subject || 'Clase',
+    course: reservation.course || '',
+    createdAt: reservation.createdAt || new Date().toISOString(),
+    notes: reservation.notes || '',
+    isFixed: !!reservation.isFixed
   };
   await setDoc(docRef, dataToSave);
   return id;
@@ -134,7 +166,14 @@ export async function addReservationToDb(reservation: Omit<Reservation, 'id'> & 
  */
 export async function updateReservationInDb(id: string, updates: Partial<Reservation>): Promise<void> {
   const docRef = doc(db, RESERVATIONS_COLLECTION, id);
-  await updateDoc(docRef, updates);
+  const cleanUpdates: any = {};
+  Object.keys(updates).forEach((key) => {
+    const val = (updates as any)[key];
+    if (val !== undefined) {
+      cleanUpdates[key] = val;
+    }
+  });
+  await updateDoc(docRef, cleanUpdates);
 }
 
 /**
