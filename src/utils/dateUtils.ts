@@ -1,48 +1,50 @@
+import { TIME_SLOTS } from '../data/initialData';
+
 export const DAYS_SPANISH = [
-  'Lunes',
-  'Martes',
-  'Miércoles',
-  'Jueves',
-  'Viernes'
+  { dayOfWeek: 1, name: 'Lunes', short: 'Lun' },
+  { dayOfWeek: 2, name: 'Martes', short: 'Mar' },
+  { dayOfWeek: 3, name: 'Miércoles', short: 'Mié' },
+  { dayOfWeek: 4, name: 'Jueves', short: 'Jue' },
+  { dayOfWeek: 5, name: 'Viernes', short: 'Vie' },
 ];
 
-export const getMondayOfCurrentWeek = (date: Date = new Date()): Date => {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
-};
+export function getWeekDays(mondayDate: Date) {
+  return DAYS_SPANISH.map((dayInfo, index) => {
+    const d = new Date(mondayDate);
+    d.setDate(d.getDate() + index);
+    const dateStr = d.toISOString().split('T')[0];
+    const formattedDay = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return {
+      ...dayInfo,
+      date: d,
+      dateStr, // YYYY-MM-DD
+      formattedDay // DD/MM
+    };
+  });
+}
 
-export const getWeekDays = (baseDate: Date = new Date()): { date: string; dayName: string; formattedDate: string }[] => {
-  const monday = getMondayOfCurrentWeek(baseDate);
-  const days = [];
-
-  for (let i = 0; i < 5; i++) {
-    const current = new Date(monday);
-    current.setDate(monday.getDate() + i);
-    
-    const year = current.getFullYear();
-    const month = String(current.getMonth() + 1).padStart(2, '0');
-    const day = String(current.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-
-    days.push({
-      date: dateStr,
-      dayName: DAYS_SPANISH[i],
-      formattedDate: `${current.getDate()}/${current.getMonth() + 1}`
-    });
-  }
-
-  return days;
-};
-
-export const formatFriendlyDate = (dateString: string): string => {
-  if (!dateString) return '';
-  const [year, month, day] = dateString.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  
+export function formatFriendlyDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  const dayIndex = dateObj.getDay(); // 0 is Sun, 1 is Mon
   const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return `${dayNames[dayIndex]} ${day}/${month}/${year}`;
+}
+
+export function getTimeSlotLabel(slotId: number): string {
+  const slot = TIME_SLOTS.find(s => s.id === slotId);
+  if (!slot) return `Módulo ${slotId}`;
+  return `${slot.label} (${slot.startTime} - ${slot.endTime})`;
+}
+
+export function isPastDate(dateStr: string, slotId: number): boolean {
+  const today = new Date();
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const slot = TIME_SLOTS.find(s => s.id === slotId);
+  const slotEndHour = slot ? parseInt(slot.endTime.split(':')[0]) : 13;
+  const slotEndMin = slot ? parseInt(slot.endTime.split(':')[1]) : 10;
   
-  return `${dayNames[date.getDay()]} ${day} de ${monthNames[date.getMonth()]}`;
-};
+  const slotDate = new Date(year, month - 1, day, slotEndHour, slotEndMin);
+  return slotDate < today;
+}
