@@ -1,3 +1,11 @@
+export const DAYS_SPANISH = [
+  'Lunes',
+  'Martes',
+  'Miércoles',
+  'Jueves',
+  'Viernes'
+];
+
 export const getMondayOfCurrentWeek = (date: Date = new Date()): Date => {
   const d = new Date(date);
   const day = d.getDay();
@@ -8,7 +16,6 @@ export const getMondayOfCurrentWeek = (date: Date = new Date()): Date => {
 export const getWeekDays = (baseDate: Date = new Date()): { date: string; dayName: string; formattedDate: string }[] => {
   const monday = getMondayOfCurrentWeek(baseDate);
   const days = [];
-  const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 
   for (let i = 0; i < 5; i++) {
     const current = new Date(monday);
@@ -21,7 +28,7 @@ export const getWeekDays = (baseDate: Date = new Date()): { date: string; dayNam
 
     days.push({
       date: dateStr,
-      dayName: dayNames[i],
+      dayName: DAYS_SPANISH[i],
       formattedDate: `${current.getDate()}/${current.getMonth() + 1}`
     });
   }
