@@ -1,0 +1,35 @@
+{
+  "entities": {
+    "reservations": {
+      "title": "Reservations",
+      "description": "Resource reservations created by teachers or staff",
+      "type": "object",
+      "properties": {
+        "resourceId": { "type": "string" },
+        "date": { "type": "string" },
+        "dayOfWeek": { "type": "number" },
+        "timeSlotId": { "type": "number" },
+        "subject": { "type": "string" },
+        "course": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "notes": { "type": "string" },
+        "isFixed": { "type": "boolean" }
+      },
+      "required": ["resourceId", "date", "dayOfWeek", "timeSlotId", "subject", "course", "createdAt"]
+    },
+    "fixed_schedules": {
+      "title": "Fixed Schedules",
+      "description": "Recurring curricular schedules assigned to resources",
+      "type": "object",
+      "properties": {
+        "resourceId": { "type": "string" },
+        "dayOfWeek": { "type": "number" },
+        "timeSlotId": { "type": "number" },
+        "subject": { "type": "string" },
+        "course": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["resourceId", "dayOfWeek", "timeSlotId", "subject", "course"]
+    }
+  }
+}

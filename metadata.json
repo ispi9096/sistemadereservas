@@ -1,0 +1,6 @@
+{
+  "name": "Reserva de Recursos Tecnológicos",
+  "description": "Aplicación accesible y ágil para que los docentes reserven proyectores y salas en menos de 3 clics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
