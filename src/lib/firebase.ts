@@ -9,9 +9,10 @@ import {
   setDoc,
   query
 } from 'firebase/firestore';
+import firebaseConfigJson from '../firebase-applet-config.json';
 
-// Configuración de Firebase
-let firebaseConfig = {
+// Configuración de prueba / producción
+const firebaseConfig = firebaseConfigJson || {
   apiKey: "AIzaSyDummyKeyForNetlifyBuild",
   authDomain: "gen-lang-client-0846084867.firebaseapp.com",
   projectId: "gen-lang-client-0846084867",
@@ -20,94 +21,85 @@ let firebaseConfig = {
   appId: "1:100000000000:web:abcdef0123456789"
 };
 
+let app: any = null;
+let db: any = null;
+
 try {
-  const configReq = import.meta.glob('../firebase-applet-config.json', { eager: true });
-  const configModule = Object.values(configReq)[0] as any;
-  if (configModule && configModule.default) {
-    firebaseConfig = configModule.default;
-  }
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  db = getFirestore(app);
 } catch (e) {
-  console.warn("Usando configuración de respaldo para Firebase");
+  console.warn("Error al inicializar Firebase, ejecutando en modo local:", e);
 }
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-export const db = getFirestore(app);
+export { db };
 
-// Colecciones
 const RESERVATIONS_COLLECTION = 'reservations';
 const FIXED_SCHEDULES_COLLECTION = 'fixedSchedules';
 
-// Suscripción a reservas en tiempo real
 export const subscribeToReservations = (callback: (reservations: any[]) => void) => {
-  const q = query(collection(db, RESERVATIONS_COLLECTION));
-  return onSnapshot(q, (snapshot) => {
-    const reservations = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    callback(reservations);
-  }, (error) => {
-    console.error("Error suscribiéndose a reservas:", error);
-  });
+  if (!db) {
+    callback([]);
+    return () => {};
+  }
+  try {
+    const q = query(collection(db, RESERVATIONS_COLLECTION));
+    return onSnapshot(q, (snapshot) => {
+      const reservations = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      callback(reservations);
+    }, (err) => {
+      console.warn("Error en listener de reservas:", err);
+      callback([]);
+    });
+  } catch (e) {
+    console.warn("Error al suscribir reservas:", e);
+    callback([]);
+    return () => {};
+  }
 };
 
-// Suscripción a horarios fijos en tiempo real
 export const subscribeToFixedSchedules = (callback: (schedules: any[]) => void) => {
-  const q = query(collection(db, FIXED_SCHEDULES_COLLECTION));
-  return onSnapshot(q, (snapshot) => {
-    const schedules = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    callback(schedules);
-  }, (error) => {
-    console.error("Error suscribiéndose a horarios fijos:", error);
-  });
+  if (!db) {
+    callback([]);
+    return () => {};
+  }
+  try {
+    const q = query(collection(db, FIXED_SCHEDULES_COLLECTION));
+    return onSnapshot(q, (snapshot) => {
+      const schedules = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      callback(schedules);
+    }, (err) => {
+      console.warn("Error en listener de horarios fijos:", err);
+      callback([]);
+    });
+  } catch (e) {
+    console.warn("Error al suscribir horarios fijos:", e);
+    callback([]);
+    return () => {};
+  }
 };
 
-// Agregar reserva
 export const addReservationToDb = async (reservation: any) => {
-  try {
-    const docRef = await addDoc(collection(db, RESERVATIONS_COLLECTION), reservation);
-    return docRef.id;
-  } catch (error) {
-    console.error("Error al agregar reserva:", error);
-    throw error;
-  }
+  if (!db) return Date.now().toString();
+  return (await addDoc(collection(db, RESERVATIONS_COLLECTION), reservation)).id;
 };
 
-// Eliminar reserva
 export const deleteReservationFromDb = async (id: string) => {
-  try {
-    await deleteDoc(doc(db, RESERVATIONS_COLLECTION, id));
-  } catch (error) {
-    console.error("Error al eliminar reserva:", error);
-    throw error;
-  }
+  if (!db) return;
+  await deleteDoc(doc(db, RESERVATIONS_COLLECTION, id));
 };
 
-// Agregar o actualizar horario fijo
 export const saveFixedScheduleToDb = async (schedule: any) => {
-  try {
-    if (schedule.id) {
-      await setDoc(doc(db, FIXED_SCHEDULES_COLLECTION, schedule.id), schedule);
-    } else {
-      await addDoc(collection(db, FIXED_SCHEDULES_COLLECTION), schedule);
-    }
-  } catch (error) {
-    console.error("Error al guardar horario fijo:", error);
-    throw error;
+  if (!db) return;
+  if (schedule.id) {
+    await setDoc(doc(db, FIXED_SCHEDULES_COLLECTION, schedule.id), schedule);
+  } else {
+    await addDoc(collection(db, FIXED_SCHEDULES_COLLECTION), schedule);
   }
 };
 
-// Eliminar horario fijo
 export const deleteFixedScheduleFromDb = async (id: string) => {
-  try {
-    await deleteDoc(doc(db, FIXED_SCHEDULES_COLLECTION, id));
-  } catch (error) {
-    console.error("Error al eliminar horario fijo:", error);
-    throw error;
-  }
+  if (!db) return;
+  await deleteDoc(doc(db, FIXED_SCHEDULES_COLLECTION, id));
 };
 
 export default app;
